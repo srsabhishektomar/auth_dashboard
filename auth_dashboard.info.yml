@@ -1,0 +1,10 @@
+name: Auth Dashboard
+type: module
+description: 'Authenticates users and provides role-protected REST and SOAP dashboards.'
+package: Custom
+core_version_requirement: ^11
+dependencies:
+  - drupal:user
+  - openid_connect:openid_connect
+  - auth0:auth0
+

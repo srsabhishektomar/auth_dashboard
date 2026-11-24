@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - auth_dashboard
+id: member
+label: member
+weight: 3
+is_admin: false
+permissions:
+  - 'access content'
+

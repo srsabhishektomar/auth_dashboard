@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - auth_dashboard
+id: exhibitor
+label: exhibitor
+weight: 4
+is_admin: false
+permissions:
+  - 'access content'
+

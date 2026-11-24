@@ -1,0 +1,34 @@
+auth_dashboard.login:
+  path: '/auth/login'
+  defaults:
+    _controller: '\Drupal\auth_dashboard\Controller\Auth0LoginController::login'
+    _title: 'Log in with Auth0'
+  requirements:
+    _user_is_logged_in: 'FALSE'
+
+auth_dashboard.logout:
+  path: '/auth/logout'
+  defaults:
+    _form: '\Drupal\auth_dashboard\Form\Auth0LogoutConfirmForm'
+    _title: 'Log out'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+auth_dashboard.member_dashboard:
+  path: '/dashboard/member'
+  defaults:
+    _controller: '\Drupal\auth_dashboard\Controller\DashboardController::member'
+    _title: 'Member dashboard'
+  requirements:
+    _role: 'member'
+    _permission: 'access content'
+
+auth_dashboard.exhibitor_dashboard:
+  path: '/dashboard/exhibitor'
+  defaults:
+    _controller: '\Drupal\auth_dashboard\Controller\DashboardController::exhibitor'
+    _title: 'Exhibitor dashboard'
+  requirements:
+    _role: 'exhibitor'
+    _permission: 'access content'
+

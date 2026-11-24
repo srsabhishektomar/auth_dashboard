@@ -1,0 +1,15 @@
+services:
+  auth_dashboard.external_api:
+    class: Drupal\auth_dashboard\Service\ExternalApiService
+    arguments:
+      - '@http_client'
+      - '@logger.factory'
+  auth_dashboard.login_redirect_subscriber:
+    class: Drupal\auth_dashboard\EventSubscriber\LoginRedirectSubscriber
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@url_generator'
+    tags:
+      - { name: event_subscriber }
+

@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Hooks for the Auth Dashboard module.
+ */
+
+/**
+ * Maps Auth0 role claims to Drupal roles before account authorization.
+ *
+ * Implements hook_openid_connect_pre_authorize().
+ *
+ * @param \Drupal\user\UserInterface|bool $account
+ *   The Drupal account being authorized, or FALSE before first login.
+ * @param array $context
+ *   OpenID Connect context containing provider and identity-token data.
+ *
+ * @return bool
+ *   TRUE to authorize the account.
+ */
+function auth_dashboard_openid_connect_pre_authorize($account, array $context): bool {
+  return ($context['plugin_id'] ?? NULL) === 'generic'
+    && count(auth_dashboard_role_claims($context)) === 1;
+}
+
+/**
+ * Maps Auth0 roles to the authorized Drupal account.
+ *
+ * Implements hook_openid_connect_post_authorize().
+ */
+function auth_dashboard_openid_connect_post_authorize(\Drupal\user\UserInterface $account, array $context): void {
+  $roles = auth_dashboard_role_claims($context);
+  if (count($roles) !== 1) {
+    \Drupal::logger('auth_dashboard')->error('OpenID Connect authorized an account without exactly one supported dashboard role.');
+    return;
+  }
+  $role_to_assign = reset($roles);
+
+  foreach (['member', 'exhibitor'] as $role_id) {
+    if ($role_id === $role_to_assign) {
+      $account->addRole($role_id);
+    }
+    else {
+      $account->removeRole($role_id);
+    }
+  }
+  $account->save();
+}
+
+/**
+ * Extracts recognized dashboard roles from OpenID Connect context.
+ */
+function auth_dashboard_role_claims(array $context): array {
+  $claim_name = \Drupal::config('auth_dashboard.settings')->get('auth0_role_claim')
+    ?: 'https://drupal11-headless.ddev.site/roles';
+
+  foreach (['user_data', 'userinfo'] as $key) {
+    if (empty($context[$key]) || !is_array($context[$key]) || !array_key_exists($claim_name, $context[$key])) {
+      continue;
+    }
+
+    $claim_values = $context[$key][$claim_name];
+    $claim_values = is_array($claim_values) ? $claim_values : [$claim_values];
+    $roles = array_filter($claim_values, static fn($role): bool => is_string($role) && in_array($role, ['member', 'exhibitor'], TRUE));
+    return array_values(array_unique($roles));
+  }
+
+  return [];
+}
+
