@@ -1,1 +1,1 @@
-auth0_role_claim: 'https://drupal11-headless.ddev.site/roles'
+auth0_role_claim: 'https://auth-dashboard.example.com/roles'

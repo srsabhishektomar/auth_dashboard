@@ -20,15 +20,17 @@ ddev drush pm:enable auth_dashboard
 ddev drush cr
 ```
 
-Open `https://drupal11-headless.ddev.site:8443`.
+Open the HTTPS URL shown by `ddev describe`.
 
 ## Auth0 setup
 
-Create a Regular Web Application in Auth0. Configure:
+Create a Regular Web Application in Auth0. Find your site's HTTPS base URL in `ddev describe` and configure:
 
-- Allowed Callback URLs: `https://drupal11-headless.ddev.site:8443/openid-connect/generic`, `https://drupal11-headless.ddev.site:8443/auth0/callback`
-- Allowed Logout URLs: `https://drupal11-headless.ddev.site:8443/`
-- Allowed Web Origins: `https://drupal11-headless.ddev.site:8443`
+- Allowed Callback URLs: `<DRUPAL_BASE_URL>/openid-connect/generic`, `<DRUPAL_BASE_URL>/auth0/callback`
+- Allowed Logout URLs: `<DRUPAL_BASE_URL>/`
+- Allowed Web Origins: `<DRUPAL_BASE_URL>`
+
+Replace `<DRUPAL_BASE_URL>` with your own HTTPS origin, including any port, without a trailing slash. The `/auth0/callback` entry is only needed if using the separate Auth0 module's `/user/login` flow.
 
 In Drupal, open **Configuration > Services > OpenID Connect** (`/admin/config/services/openid-connect`), enable the **Generic** client, and set the Authorization, Token, and UserInfo endpoints to the values published in `https://<AUTH0_DOMAIN>/.well-known/openid-configuration` (typically `https://<AUTH0_DOMAIN>/authorize`, `/oauth/token`, and `/userinfo`). The selected module's Generic client does not accept a discovery URL; copy the endpoint values from the metadata document. Use the callback URL shown by the provider form as the exact Allowed Callback URL in Auth0. Supply both modules' credentials using local Drupal settings overrides as described below, not through the admin forms.
 
@@ -61,21 +63,15 @@ $config['auth0.settings']['auth0_cookie_secret_key'] = '';
 
 These settings override the corresponding active configuration at runtime; they do not enable the Generic client or configure its endpoints, which remain in the OpenID Connect admin form. The empty Auth0 Key IDs ensure the module uses the secrets from this local override rather than a configured Key entity. After changing the local settings, run `ddev drush cr`. If credentials were previously entered through an admin form, this override does not remove the old values from active configuration or existing exports; remove those stored values and rotate any secret that was committed. For production, use a managed secret store such as Drupal's Key module instead of a local settings file.
 
-Create an Auth0 custom namespace claim named `roles` containing `member` or `exhibitor`. A sample Auth0 Action is:
+Create an Auth0 custom namespace claim named `roles` containing `member` or `exhibitor`. The namespace is deliberately independent of the Drupal hostname, so it remains the same across local and production deployments. The configured claim name is `https://auth-dashboard.example.com/roles`. Copy [`auth0/post-login-action.js`](./auth0/post-login-action.js) into **Actions > Library > Build Custom > Login / Post Login**, add it to the **Login** flow, and deploy it. This must be a Post Login Action rather than Post User Registration: the latter runs asynchronously after account creation and cannot modify the ID token used by Drupal.
 
-```javascript
-exports.onExecutePostLogin = async (event, api) => {
-  const namespace = 'https://drupal11-headless.ddev.site';
-  const roles = event.authorization?.roles || [];
-  api.idToken.setCustomClaim(`${namespace}/roles`, roles);
-};
-```
+For production, replace `auth-dashboard.example.com` with a stable namespace URL you control, and set the full matching claim name in `auth_dashboard.settings.auth0_role_claim` and the Action's `namespace` constant. The namespace is a claim identifier; it does not need to resolve to your Drupal site. In **User Management > Roles**, assign the `member` role to the member account and `exhibitor` to the exhibitor account. Add the Action to the **Login** flow and deploy it. The module's authorization hooks read the namespaced role claim from the decoded ID token and map it to the matching Drupal role.
 
-In **User Management > Roles**, assign the `member` role to the member account and `exhibitor` to the exhibitor account. Add the Action to the **Login** flow and deploy it. The module's authorization hooks read the namespaced role claim from the decoded ID token and map it to the matching Drupal role.
+The Action reads the Auth0 role already assigned to the user; it does not assign roles during sign-up. Assign each newly registered account its `member` or `exhibitor` role in **User Management > Roles** before its first Drupal login. Auth0's Post User Registration trigger is asynchronous and cannot add role claims to the ID token, so the Drupal role mapping must run from the Post Login flow.
 
-Set both callback URLs above, the Allowed Logout URL `https://drupal11-headless.ddev.site:8443/`, and the Allowed Web Origin `https://drupal11-headless.ddev.site:8443`.
+Set the callback URLs above, the Allowed Logout URL `<DRUPAL_BASE_URL>/`, and the Allowed Web Origin `<DRUPAL_BASE_URL>`.
 
-The custom module creates the `member` and `exhibitor` Drupal roles. It enables OpenID Connect's registration override so first-time Auth0 users can receive Drupal accounts even when Drupal's global registration policy is admin-only. Account creation is still gated by the callback's requirement for exactly one supported role claim. Use `/auth/login` to begin Auth0 login and `/auth/logout` to confirm local and Auth0 logout. After the OIDC callback completes, Drupal roles are mapped from the namespaced claim and the user is sent to their dashboard. If callback role validation fails, Drupal falls back to its front page instead of returning the signed-in user to the anonymous-only `/auth/login` route. Direct dashboard requests are also role-protected. Supply the `https://drupal11-headless.ddev.site/roles` claim key as `auth_dashboard.settings.auth0_role_claim` if the site was installed before this setting was added.
+The custom module creates the `member` and `exhibitor` Drupal roles. It enables OpenID Connect's registration override so first-time Auth0 users can receive Drupal accounts even when Drupal's global registration policy is admin-only. Authorization requires exactly one supported role claim. For an already-linked Drupal account, the role is synchronized during OIDC pre-authorization, before Drupal logs the user in. For a first-time user, Drupal creates the account after pre-authorization, so the role is assigned immediately after account creation and before redirecting to the dashboard. Use `/auth/login` to begin Auth0 login and `/auth/logout` to confirm local and Auth0 logout. If callback role validation fails, Drupal falls back to its front page instead of returning the signed-in user to the anonymous-only `/auth/login` route. Direct dashboard requests are also role-protected. Existing installations are migrated from the old DDEV-specific claim namespace; custom claim values are preserved.
 
 ## Validation
 
