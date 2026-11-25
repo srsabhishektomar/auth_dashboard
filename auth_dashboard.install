@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the Auth Dashboard module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function auth_dashboard_install(): void {
+  \Drupal::configFactory()
+    ->getEditable('openid_connect.settings')
+    ->set('override_registration_settings', TRUE)
+    ->save();
+}
