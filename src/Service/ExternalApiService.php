@@ -2,6 +2,7 @@
 
 namespace Drupal\auth_dashboard\Service;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -17,6 +18,7 @@ class ExternalApiService {
   public function __construct(
     protected ClientInterface $httpClient,
     LoggerChannelFactoryInterface $logger_factory,
+    protected ConfigFactoryInterface $configFactory,
   ) {
     $this->logger = $logger_factory->get('auth_dashboard');
   }
@@ -24,11 +26,12 @@ class ExternalApiService {
   protected LoggerInterface $logger;
 
   /**
-   * Retrieves one sample user from JSONPlaceholder.
+   * Retrieves a JSON API response.
    */
   public function getJsonPlaceholderUser(): array|NULL {
     try {
-      $response = $this->httpClient->request('GET', 'https://jsonplaceholder.typicode.com/users/1', [
+      $endpoint = $this->configFactory->get('auth_dashboard.settings')->get('json_endpoint');
+      $response = $this->httpClient->request('GET', $endpoint, [
         'timeout' => 10,
       ]);
       $data = json_decode((string) $response->getBody(), TRUE);
@@ -58,7 +61,7 @@ XML;
     try {
       $response = $this->httpClient->request(
         'POST',
-        'https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso',
+        $this->configFactory->get('auth_dashboard.settings')->get('soap_endpoint'),
         [
           'timeout' => 15,
           'headers' => [

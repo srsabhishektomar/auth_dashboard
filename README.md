@@ -22,6 +22,10 @@ ddev drush cr
 
 Open the HTTPS URL shown by `ddev describe`.
 
+## Dashboard API endpoints
+
+The member JSON API and exhibitor SOAP API endpoints are configurable in Drupal under **Configuration > Services > Auth Dashboard API settings** (`/admin/config/services/auth-dashboard`). The defaults are JSONPlaceholder's `/users/1` endpoint and the Beeceptor Country Information SOAP endpoint. The configuration is exported as `auth_dashboard.settings`. On an existing installation, run `ddev drush updb` and `ddev drush cr` to add these defaults and register the settings page.
+
 ## Auth0 setup
 
 Create a Regular Web Application in Auth0. Find your site's HTTPS base URL in `ddev describe` and configure:
@@ -82,7 +86,20 @@ Local validation in DDEV confirmed:
 - Direct anonymous requests to `/dashboard/member` and `/dashboard/exhibitor` returned HTTP 403. Drupal route-access checks using simulated anonymous, `member`, and `exhibitor` role sessions allowed each role only its matching dashboard.
 - The Generic OIDC provider and Auth0 module settings are enabled locally. `/user/login` now returns an Auth0 authorization redirect; `/auth/login` uses the Generic OIDC flow.
 
-**Auth0 account-based validation is still pending.** The browser successfully reaches Auth0 and returns to Drupal's callback URL, so the callback URL configuration is working. Drupal's PHP container cannot currently validate the corporate proxy's certificate when it connects to Auth0's token endpoint; this TLS trust failure prevents the token exchange and callback processing from completing. Add the corporate proxy CA certificate to the PHP container's trusted CA bundle and refresh the trust store, then retry. Do not disable TLS certificate verification. After the token exchange works, verify role mapping, dashboard redirects, and remote logout with the Auth0 test accounts. Do not treat the simulated Drupal role-session checks above as account-based Auth0 validation.
+**Auth0 account-based validation is still pending.** The browser reaches Auth0 and returns to Drupal, but PHP cannot validate the TLS-intercepting proxy's certificate chain during the token exchange. Do not disable TLS verification. For a DDEV-only fix, obtain the approved corporate root CA certificate from your IT team, save a local copy as `.ddev/web-build/corporate-proxy-ca.crt`, and create a local `.ddev/web-build/Dockerfile` containing:
+
+```dockerfile
+COPY corporate-proxy-ca.crt /usr/local/share/ca-certificates/corporate-proxy-ca.crt
+RUN update-ca-certificates
+```
+
+Rebuild the DDEV web image with `ddev utility rebuild -s web`, then verify TLS from the container with:
+
+```sh
+ddev exec curl -fsS https://dev-gvqfemlaqlrll8ph.us.auth0.com/.well-known/openid-configuration >/dev/null
+```
+
+Keep the corporate certificate and local Dockerfile out of source control unless the team has explicitly approved distributing them. Do not trust a certificate copied from the failed connection; use the CA certificate provided through the organization's trusted channel. After the test succeeds, retry Auth0 login and verify role mapping, dashboard redirects, and remote logout with the test accounts. Do not treat simulated Drupal role-session checks as account-based Auth0 validation.
 
 ## Authentication module evaluation
 

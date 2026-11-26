@@ -32,3 +32,11 @@ auth_dashboard.exhibitor_dashboard:
     _role: 'exhibitor'
     _permission: 'access content'
 
+auth_dashboard.settings:
+  path: '/admin/config/services/auth-dashboard'
+  defaults:
+    _form: '\Drupal\auth_dashboard\Form\ExternalApiSettingsForm'
+    _title: 'Auth Dashboard API settings'
+  requirements:
+    _permission: 'administer site configuration'
+

@@ -22,3 +22,9 @@ auth_dashboard.logout:
   menu_name: account
   weight: 100
 
+auth_dashboard.settings:
+  title: 'Auth Dashboard API settings'
+  description: 'Configure the JSON and SOAP API endpoints.'
+  route_name: auth_dashboard.settings
+  parent: system.admin_config_services
+

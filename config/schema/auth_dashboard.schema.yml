@@ -5,4 +5,10 @@ auth_dashboard.settings:
     auth0_role_claim:
       type: string
       label: 'Auth0 role claim name'
+    json_endpoint:
+      type: string
+      label: 'JSON API endpoint'
+    soap_endpoint:
+      type: string
+      label: 'SOAP API endpoint'
 

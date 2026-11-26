@@ -4,6 +4,7 @@ services:
     arguments:
       - '@http_client'
       - '@logger.factory'
+      - '@config.factory'
   auth_dashboard.login_redirect_subscriber:
     class: Drupal\auth_dashboard\EventSubscriber\LoginRedirectSubscriber
     arguments:

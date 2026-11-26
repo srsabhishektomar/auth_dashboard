@@ -14,3 +14,17 @@ function auth_dashboard_install(): void {
     ->set('override_registration_settings', TRUE)
     ->save();
 }
+
+/**
+ * Adds configurable external API endpoints to existing installations.
+ */
+function auth_dashboard_update_10001(): void {
+  $config = \Drupal::configFactory()->getEditable('auth_dashboard.settings');
+  if ($config->get('json_endpoint') === NULL) {
+    $config->set('json_endpoint', 'https://jsonplaceholder.typicode.com/users/1');
+  }
+  if ($config->get('soap_endpoint') === NULL) {
+    $config->set('soap_endpoint', 'https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso');
+  }
+  $config->save();
+}

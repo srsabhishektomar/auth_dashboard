@@ -1,1 +1,3 @@
 auth0_role_claim: 'https://auth-dashboard.example.com/roles'
+json_endpoint: 'https://jsonplaceholder.typicode.com/users/1'
+soap_endpoint: 'https://soap-service-free.mock.beeceptor.com/CountryInfoService.wso'
